@@ -61,7 +61,7 @@ include 'header.php';
     <div class="container">
         <a href="index.php" style="font-size: 14px; color: #999;">&larr; Back to Blog</a>
         
-        <div class="article__img" style="height: 400px; border-radius: 20px; margin-top: 20px; background-image: url('<?php echo htmlspecialchars($image); ?>'); background-size: cover; background-position: center;"></div>
+        <img src="<?php echo htmlspecialchars($image); ?>" style="width: 100%; heigh: auto; border-radius: 20px; margin-top: 20px; "/>
 
         <div class="markdown-body">
             <?php echo $html; ?>
