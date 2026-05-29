@@ -1,13 +1,23 @@
 <?php
-// Admin Configuration - CHANGE THIS PASSWORD!
-// Default: admin / admin123
-// Generate new hash with: echo password_hash('yourpassword', PASSWORD_DEFAULT);
-define('ADMIN_PASSWORD_HASH', '$2y$10$tNtPEZPfi9DobS21tc0/XeNp0yZF5NwMLgiLTFsgkZkP2ESLAHxRK'); // h23527jr234D2742
+// Admin Configuration
+// Preferred secret source order:
+// 1) BLOG_ADMIN_PASSWORD_HASH environment variable
+// 2) ADMIN_PASSWORD_HASH_LOCAL constant in admin/config.local.php (gitignored)
+// 3) ADMIN_PASSWORD_HASH fallback below (legacy compatibility)
+// Generate hash with: php -r "echo password_hash('yourpassword', PASSWORD_DEFAULT);"
+define('ADMIN_PASSWORD_HASH', '$2y$10$tNtPEZPfi9DobS21tc0/XeNp0yZF5NwMLgiLTFsgkZkP2ESLAHxRK'); // legacy fallback hash
 
 define('POSTS_DIR', __DIR__ . '/../posts/');
 define('ADMIN_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/admin/');
+define('LOGIN_MAX_ATTEMPTS', 5);
+define('LOGIN_LOCKOUT_SECONDS', 900); // 15 min
 
 session_start();
+
+$localConfigFile = __DIR__ . '/config.local.php';
+if (file_exists($localConfigFile)) {
+    require_once $localConfigFile;
+}
 
 function isLoggedIn() {
     return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
@@ -21,11 +31,59 @@ function requireAuth() {
 }
 
 function login($password) {
-    if (password_verify($password, ADMIN_PASSWORD_HASH)) {
+    $adminHash = getAdminPasswordHash();
+    if (password_verify($password, $adminHash)) {
         $_SESSION['admin_logged_in'] = true;
+        clearLoginThrottle();
         return true;
     }
     return false;
+}
+
+function getAdminPasswordHash() {
+    $envHash = getenv('BLOG_ADMIN_PASSWORD_HASH');
+    if (!empty($envHash)) {
+        return $envHash;
+    }
+    if (defined('ADMIN_PASSWORD_HASH_LOCAL') && !empty(ADMIN_PASSWORD_HASH_LOCAL)) {
+        return ADMIN_PASSWORD_HASH_LOCAL;
+    }
+    return ADMIN_PASSWORD_HASH;
+}
+
+function isLoginLocked() {
+    $attempts = $_SESSION['admin_login_attempts'] ?? 0;
+    $lockUntil = $_SESSION['admin_login_lock_until'] ?? 0;
+
+    if ($lockUntil > time()) {
+        return true;
+    }
+    if ($lockUntil > 0 && $lockUntil <= time()) {
+        clearLoginThrottle();
+    }
+    return false;
+}
+
+function getLoginLockRemainingSeconds() {
+    $lockUntil = $_SESSION['admin_login_lock_until'] ?? 0;
+    if ($lockUntil <= time()) {
+        return 0;
+    }
+    return $lockUntil - time();
+}
+
+function registerFailedLogin() {
+    $attempts = $_SESSION['admin_login_attempts'] ?? 0;
+    $attempts++;
+    $_SESSION['admin_login_attempts'] = $attempts;
+
+    if ($attempts >= LOGIN_MAX_ATTEMPTS) {
+        $_SESSION['admin_login_lock_until'] = time() + LOGIN_LOCKOUT_SECONDS;
+    }
+}
+
+function clearLoginThrottle() {
+    unset($_SESSION['admin_login_attempts'], $_SESSION['admin_login_lock_until']);
 }
 
 function logout() {

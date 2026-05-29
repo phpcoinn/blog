@@ -4,12 +4,25 @@ require 'config.php';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $password = $_POST['password'] ?? '';
-    if (login($password)) {
-        header('Location: dashboard.php');
-        exit;
+    if (isLoginLocked()) {
+        $seconds = getLoginLockRemainingSeconds();
+        $minutes = ceil($seconds / 60);
+        $error = "Too many failed attempts. Try again in {$minutes} minute(s).";
     } else {
-        $error = 'Invalid password';
+        $password = $_POST['password'] ?? '';
+        if (login($password)) {
+            header('Location: dashboard.php');
+            exit;
+        } else {
+            registerFailedLogin();
+            if (isLoginLocked()) {
+                $seconds = getLoginLockRemainingSeconds();
+                $minutes = ceil($seconds / 60);
+                $error = "Too many failed attempts. Try again in {$minutes} minute(s).";
+            } else {
+                $error = 'Invalid password';
+            }
+        }
     }
 }
 
