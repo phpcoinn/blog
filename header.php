@@ -6,12 +6,12 @@
     <title><?php echo isset($pageTitle) ? $pageTitle : 'PHPCoin Blog'; ?></title>
     <link rel="stylesheet" href="css/style.css">
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T5GTED2PSK"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YT2R9M47XK"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-T5GTED2PSK');
+      gtag('config', 'G-YT2R9M47XK');
     </script>
 </head>
 <body>
